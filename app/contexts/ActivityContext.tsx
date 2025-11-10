@@ -25,8 +25,23 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch activities from database
   const refreshActivities = useCallback(async () => {
+    // Skip fetching if we're on the setup route
+    if (window.location.pathname === "/setup" || window.location.pathname.startsWith("/setup/")) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/activity?limit=50");
+      
+      // Check if response is actually JSON (not HTML error page)
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        // Response is not JSON (likely HTML error page), skip
+        setIsLoading(false);
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setActivities(
@@ -50,7 +65,14 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch activities:", error);
+      // Silently handle errors during setup or when API is unavailable
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        // HTML response instead of JSON - likely during setup or auth redirect
+        console.warn("Activity API returned non-JSON response, skipping");
+      } else {
+        console.error("Failed to fetch activities:", error);
+      }
+      
       // Fallback to localStorage on error
       try {
         const stored = localStorage.getItem("admin_activities");
@@ -64,7 +86,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
           );
         }
       } catch (e) {
-        console.error("Failed to load from localStorage:", e);
+        // Silently ignore localStorage errors
       }
     } finally {
       setIsLoading(false);
@@ -129,10 +151,18 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
     refreshActivities();
   }, [refreshActivities]);
 
-  // Refresh activities every 30 seconds to stay in sync
+  // Refresh activities every 30 seconds to stay in sync (only if not on setup page)
   useEffect(() => {
+    // Don't set up interval on setup page
+    if (window.location.pathname === "/setup" || window.location.pathname.startsWith("/setup/")) {
+      return;
+    }
+
     const interval = setInterval(() => {
-      refreshActivities();
+      // Check again before refreshing
+      if (window.location.pathname !== "/setup" && !window.location.pathname.startsWith("/setup/")) {
+        refreshActivities();
+      }
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);

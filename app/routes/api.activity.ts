@@ -3,9 +3,16 @@ import Database from "better-sqlite3";
 import { requireAdmin } from "~/lib/auth.middleware";
 import { ConfigStore } from "~/lib/config.server";
 import { DatabaseConnectionManager } from "~/lib/db-connection.server";
+import { getSetupStatus } from "~/middleware/setup-check.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  // Require admin role
+  // Check if setup is complete - if not, return empty array (setup phase)
+  const setupComplete = await getSetupStatus();
+  if (!setupComplete) {
+    return Response.json({ activities: [] });
+  }
+
+  // Require admin role only after setup is complete
   await requireAdmin(request);
 
   try {
@@ -68,7 +75,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  // Require admin role
+  // Check if setup is complete - if not, return success but don't log (setup phase)
+  const setupComplete = await getSetupStatus();
+  if (!setupComplete) {
+    // During setup, just return success without logging
+    return Response.json({ 
+      success: true,
+      activity: null,
+      message: "Activity logging disabled during setup"
+    });
+  }
+
+  // Require admin role only after setup is complete
   await requireAdmin(request);
 
   if (request.method !== "POST") {
