@@ -4,7 +4,7 @@ import { DatabaseConnectionManager } from "~/lib/db-connection.server";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import bcrypt from "bcrypt";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
 
 /**
  * API endpoint for creating the initial admin user

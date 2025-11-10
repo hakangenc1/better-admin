@@ -1,5 +1,5 @@
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
 import { requireAdmin } from "~/lib/auth.middleware";
 import { ConfigStore } from "~/lib/config.server";
 import { DatabaseConnectionManager } from "~/lib/db-connection.server";

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import * as React from "react";
 import { useOutletContext } from "react-router";
 import type { Route } from "./+types/dashboard.profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
