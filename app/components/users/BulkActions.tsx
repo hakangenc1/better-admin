@@ -141,19 +141,6 @@ export function BulkActions({
             <DropdownMenuItem
               onClick={() =>
                 openConfirm(
-                  "Change Role to Moderator",
-                  `Change ${selectedUsers.length} user(s) to Moderator role?`,
-                  () => onBulkRoleChange(userIds, "moderator")
-                )
-              }
-            >
-              <Shield className="mr-2 h-4 w-4" />
-              Make Moderator
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() =>
-                openConfirm(
                   "Change Role to User",
                   `Change ${selectedUsers.length} user(s) to User role?`,
                   () => onBulkRoleChange(userIds, "user")

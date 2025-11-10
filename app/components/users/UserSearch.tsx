@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Input } from "~/components/ui/input";
+import { useMemo, useState } from "react";
+import type { SearchFilters } from "~/types";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import {
   Select,
@@ -9,9 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Card, CardContent } from "~/components/ui/card";
-import { Search, X, Download, Filter } from "lucide-react";
-import type { SearchFilters } from "~/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Filter, Download, Search, X } from "lucide-react";
 
 interface UserSearchProps {
   onSearch: (filters: SearchFilters) => void;
@@ -20,15 +25,23 @@ interface UserSearchProps {
 }
 
 export function UserSearch({ onSearch, onExport, totalResults }: UserSearchProps) {
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     query: "",
     role: "all",
     status: "all",
   });
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
   const handleSearch = () => {
     onSearch(filters);
+  };
+
+  const updateFilters = (partial: Partial<SearchFilters>) => {
+    setFilters((prev) => {
+      const next: SearchFilters = { ...prev, ...partial };
+      onSearch(next);
+      return next;
+    });
   };
 
   const handleClear = () => {
@@ -39,121 +52,103 @@ export function UserSearch({ onSearch, onExport, totalResults }: UserSearchProps
     };
     setFilters(clearedFilters);
     onSearch(clearedFilters);
+    setIsFilterMenuOpen(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
       handleSearch();
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or email..."
-            value={filters.query}
-            onChange={(e) => setFilters({ ...filters, query: e.target.value })}
-            onKeyPress={handleKeyPress}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleSearch}>
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
-        <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-        </Button>
-        <Button variant="outline" onClick={onExport}>
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2 backdrop-blur">
+      <div className="relative flex-1 min-w-[200px] sm:min-w-[280px]">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Quick search…"
+          value={filters.query}
+          onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
+          onKeyDown={handleKeyDown}
+          className="pl-9"
+        />
       </div>
 
-      {showFilters && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select
-                  value={filters.role}
-                  onValueChange={(value) => setFilters({ ...filters, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Roles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
-                    <SelectItem value="support">Support</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <Button variant="secondary" size="sm" onClick={handleSearch} className="gap-1.5">
+        <Search className="h-4 w-4" />
+        Search
+      </Button>
 
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) => setFilters({ ...filters, status: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="pending">Pending Verification</SelectItem>
-                    <SelectItem value="banned">Banned</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <DropdownMenu open={isFilterMenuOpen} onOpenChange={setIsFilterMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Filter className="h-4 w-4" />
+            Filters
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-80 space-y-4 p-4" align="start">
+          <div className="grid gap-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground/80">
+              Role
+            </Label>
+            <Select
+              value={filters.role}
+              onValueChange={(value) => updateFilters({ role: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Any role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="space-y-2">
-                <Label>Date Range</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={filters.dateFrom ? filters.dateFrom.toISOString().split("T")[0] : ""}
-                    onChange={(e) =>
-                      setFilters({
-                        ...filters,
-                        dateFrom: e.target.value ? new Date(e.target.value) : undefined,
-                      })
-                    }
-                  />
-                  <Input
-                    type="date"
-                    value={filters.dateTo ? filters.dateTo.toISOString().split("T")[0] : ""}
-                    onChange={(e) =>
-                      setFilters({
-                        ...filters,
-                        dateTo: e.target.value ? new Date(e.target.value) : undefined,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
+          <div className="grid gap-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground/80">
+              Status
+            </Label>
+            <Select
+              value={filters.status}
+              onValueChange={(value) =>
+                updateFilters({ status: value as SearchFilters["status"] })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Any status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="banned">Banned</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="flex justify-between items-center mt-4">
-              <p className="text-sm text-muted-foreground">
-                {totalResults} {totalResults === 1 ? "result" : "results"} found
-              </p>
-              <Button variant="ghost" onClick={handleClear}>
-                <X className="h-4 w-4 mr-2" />
-                Clear Filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={handleClear} className="gap-1.5">
+              <X className="h-4 w-4" />
+              Reset
+            </Button>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Button variant="outline" size="sm" onClick={onExport} className="gap-1.5">
+        <Download className="h-4 w-4" />
+        Export
+      </Button>
+
+      <Badge variant="secondary" className="ml-auto flex items-center gap-1 font-medium">
+        <span>{totalResults}</span>
+        <span className="text-xs uppercase tracking-wide text-muted-foreground/80">
+          {totalResults === 1 ? "match" : "matches"}
+        </span>
+      </Badge>
     </div>
   );
 }

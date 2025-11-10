@@ -14,10 +14,6 @@
 - ✅ Active session viewing and management
 - ✅ Revoke individual or all other sessions
 
-### 3. Extended User Roles
-- ✅ Added "moderator" and "support" roles
-- ✅ Flexible role-based access control
-
 ## 🚧 In Progress / To Be Implemented
 
 ### 4. Advanced Search & Filtering

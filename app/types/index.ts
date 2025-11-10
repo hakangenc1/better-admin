@@ -4,7 +4,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: "user" | "admin" | "moderator" | "support";
+  role: "user" | "admin";
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -19,13 +19,13 @@ export interface CreateUserData {
   email: string;
   name: string;
   password: string;
-  role: "user" | "admin" | "moderator" | "support";
+  role: "user" | "admin";
 }
 
 export interface UpdateUserData {
   email?: string;
   name?: string;
-  role?: "user" | "admin" | "moderator" | "support";
+  role?: "user" | "admin";
   emailVerified?: boolean;
   image?: string;
 }

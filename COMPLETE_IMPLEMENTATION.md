@@ -47,7 +47,7 @@ Your user management system has been successfully upgraded with all requested fe
 - **Status**: ✅ Fully functional
 
 ### 7. ✅ Extended User Roles
-- **Roles**: Admin, Moderator, Support, User
+- **Roles**: Admin, User
 - **Location**: `app/types/index.ts`
 - **Status**: ✅ Fully implemented
 

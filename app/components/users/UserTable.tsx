@@ -1,4 +1,5 @@
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -18,13 +19,22 @@ interface UserTableProps {
   onUnban: (user: User) => void;
   isLoading: boolean;
   isAdmin?: boolean;
+  selectable?: boolean;
+  selectedUserIds?: string[];
+  onSelectChange?: (user: User, selected: boolean) => void;
+  onSelectAllChange?: (selected: boolean) => void;
 }
 
-function TableSkeleton() {
+function TableSkeleton({ selectable }: { selectable: boolean }) {
   return (
     <>
       {[...Array(5)].map((_, i) => (
         <TableRow key={i}>
+          {selectable && (
+            <TableCell>
+              <Skeleton className="h-4 w-4" />
+            </TableCell>
+          )}
           <TableCell>
             <Skeleton className="h-4 w-[200px]" />
           </TableCell>
@@ -32,7 +42,7 @@ function TableSkeleton() {
             <Skeleton className="h-4 w-[150px]" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-4 w-[100px]" />
+            <Skeleton className="h-4 w-[120px]" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-[80px]" />
@@ -52,10 +62,10 @@ function TableSkeleton() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ selectable }: { selectable: boolean }) {
   return (
     <TableRow>
-      <TableCell colSpan={6} className="h-24 text-center">
+      <TableCell colSpan={selectable ? 7 : 6} className="h-24 text-center">
         <div className="flex flex-col items-center justify-center gap-2">
           <p className="text-muted-foreground">No users found</p>
           <p className="text-sm text-muted-foreground">
@@ -67,7 +77,19 @@ function EmptyState() {
   );
 }
 
-export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading, isAdmin = true }: UserTableProps) {
+export function UserTable({
+  users,
+  onEdit,
+  onDelete,
+  onBan,
+  onUnban,
+  isLoading,
+  isAdmin = true,
+  selectable = false,
+  selectedUserIds = [],
+  onSelectChange,
+  onSelectAllChange,
+}: UserTableProps) {
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -113,11 +135,27 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading, 
     );
   };
 
+  const allSelected = selectable && users.length > 0 && users.every((user) => selectedUserIds.includes(user.id));
+  const someSelected =
+    selectable &&
+    users.some((user) => selectedUserIds.includes(user.id)) &&
+    !allSelected;
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            {selectable && (
+              <TableHead className="w-[48px]">
+                <Checkbox
+                  aria-label="Select all users"
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(checked) => onSelectAllChange?.(checked === true)}
+                  disabled={users.length === 0}
+                />
+              </TableHead>
+            )}
             <TableHead>Email</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Registration Date</TableHead>
@@ -128,12 +166,23 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading, 
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableSkeleton />
+            <TableSkeleton selectable={selectable} />
           ) : users.length === 0 ? (
-            <EmptyState />
+            <EmptyState selectable={selectable} />
           ) : (
             users.map((user) => (
               <TableRow key={user.id}>
+                {selectable && (
+                  <TableCell>
+                    <Checkbox
+                      aria-label={`Select ${user.email}`}
+                      checked={selectedUserIds.includes(user.id)}
+                      onCheckedChange={(checked) =>
+                        onSelectChange?.(user, checked === true)
+                      }
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{formatDate(user.createdAt)}</TableCell>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext, useLoaderData, useRevalidator } from "react-router";
 import type { Route } from "./+types/dashboard.users";
 import { getAllUsers } from "~/lib/db.server";
@@ -9,10 +9,12 @@ import { UserCreateDialog } from "~/components/users/UserCreateDialog";
 import { UserEditDialog } from "~/components/users/UserEditDialog";
 import { UserDeleteDialog } from "~/components/users/UserDeleteDialog";
 import { UserBanDialog } from "~/components/users/UserBanDialog";
+import { UserSearch } from "~/components/users/UserSearch";
+import { BulkActions } from "~/components/users/BulkActions";
 import { Button } from "~/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import type { User } from "~/types";
+import type { SearchFilters, User } from "~/types";
 
 interface DashboardContext {
   user: {
@@ -50,6 +52,7 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
   const userId = formData.get("userId") as string;
+  const userIds = formData.getAll("userIds").map((value) => value?.toString()).filter(Boolean) as string[];
 
   if (intent === "update" && userId) {
     const email = formData.get("email") as string;
@@ -102,6 +105,56 @@ export async function action({ request }: Route.ActionArgs) {
     } catch (error: any) {
       console.error("Failed to unban user:", error);
       return { success: false, error: error.message || "Failed to unban user" };
+    }
+  }
+
+  if (intent === "bulk-ban" && userIds.length) {
+    const banReason = (formData.get("banReason") as string) || undefined;
+    try {
+      const { banUser } = await import("~/lib/user-management.server");
+      await Promise.all(userIds.map((id) => banUser(id, banReason)));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to bulk ban users:", error);
+      return { success: false, error: error.message || "Failed to bulk ban users" };
+    }
+  }
+
+  if (intent === "bulk-unban" && userIds.length) {
+    try {
+      const { unbanUser } = await import("~/lib/user-management.server");
+      await Promise.all(userIds.map((id) => unbanUser(id)));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to bulk unban users:", error);
+      return { success: false, error: error.message || "Failed to bulk unban users" };
+    }
+  }
+
+  if (intent === "bulk-role" && userIds.length) {
+    const role = formData.get("role") as string;
+    if (role !== "admin" && role !== "user") {
+      return { success: false, error: "Invalid role selected" };
+    }
+
+    try {
+      const { updateUser } = await import("~/lib/user-management.server");
+      await Promise.all(userIds.map((id) => updateUser(id, { role })));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to bulk update roles:", error);
+      return { success: false, error: error.message || "Failed to update user roles" };
+    }
+  }
+
+  if (intent === "bulk-delete" && userIds.length) {
+    try {
+      const { deleteUser } = await import("~/lib/user-management.server");
+      await Promise.all(userIds.map((id) => deleteUser(id)));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to bulk delete users:", error);
+      return { success: false, error: error.message || "Failed to delete selected users" };
     }
   }
 
@@ -159,14 +212,73 @@ export default function DashboardUsers() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState<SearchFilters>({
+    query: "",
+    role: "all",
+    status: "all",
+  });
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const itemsPerPage = 10;
 
-  // Paginate users
+  const filteredUsers = useMemo(() => {
+    return users.filter((currentUser) => {
+      const createdAt = new Date(currentUser.createdAt);
+
+      if (filters.query) {
+        const query = filters.query.toLowerCase().trim();
+        if (
+          !currentUser.name.toLowerCase().includes(query) &&
+          !currentUser.email.toLowerCase().includes(query)
+        ) {
+          return false;
+        }
+      }
+
+      if (filters.role && filters.role !== "all" && currentUser.role !== filters.role) {
+        return false;
+      }
+
+      if (filters.status && filters.status !== "all") {
+        if (filters.status === "active" && (currentUser.banned || !currentUser.emailVerified)) {
+          return false;
+        }
+        if (filters.status === "pending" && (currentUser.banned || currentUser.emailVerified)) {
+          return false;
+        }
+        if (filters.status === "banned" && !currentUser.banned) {
+          return false;
+        }
+      }
+
+      if (filters.dateFrom) {
+        const from = new Date(filters.dateFrom);
+        if (createdAt < from) {
+          return false;
+        }
+      }
+
+      if (filters.dateTo) {
+        const to = new Date(filters.dateTo);
+        if (createdAt > to) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [users, filters]);
+
+  const totalResults = filteredUsers.length;
+
+  const totalPages = Math.max(1, Math.ceil(totalResults / itemsPerPage) || 1);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = users.slice(startIndex, endIndex);
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const selectedUsers = useMemo(
+    () => users.filter((item) => selectedUserIds.includes(item.id)),
+    [users, selectedUserIds]
+  );
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
@@ -189,6 +301,201 @@ export default function DashboardUsers() {
   const handleCreateUser = () => {
     setIsCreateDialogOpen(true);
   };
+
+  const handleSearch = (newFilters: SearchFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  const handleExport = () => {
+    const headers = ["Email", "Name", "Status", "Role", "Created At"];
+    const rows = filteredUsers.map((item) => {
+      const status = item.banned ? "Banned" : item.emailVerified ? "Active" : "Pending";
+      const createdAt = new Date(item.createdAt).toISOString();
+      return [item.email, item.name, status, item.role, createdAt]
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `users-export-${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Exported users to CSV");
+  };
+
+  const performBulkAction = async (
+    intent: "bulk-ban" | "bulk-unban" | "bulk-role" | "bulk-delete",
+    userIds: string[],
+    extra?: Record<string, string>
+  ) => {
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("intent", intent);
+    userIds.forEach((id) => formData.append("userIds", id));
+    if (extra) {
+      Object.entries(extra).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+    }
+
+    const response = await fetch(window.location.pathname, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Bulk action request failed");
+    }
+
+    const result = await response.json();
+
+    if (!result?.success) {
+      throw new Error(result?.error || "Bulk action failed");
+    }
+  };
+
+  const getUsersByIds = (userIds: string[]) =>
+    users.filter((item) => userIds.includes(item.id));
+
+  const handleBulkBan = async (userIds: string[]) => {
+    try {
+      await performBulkAction("bulk-ban", userIds);
+      const targets = getUsersByIds(userIds).map((item) => item.email).join(", ");
+      toast.success(`Banned ${userIds.length} user(s)`);
+      logActivity({
+        action: "Banned multiple users",
+        user: user.name,
+        target: targets || `${userIds.length} users`,
+        type: "ban",
+      });
+      setSelectedUserIds((prev) => prev.filter((id) => !userIds.includes(id)));
+      revalidator.revalidate();
+    } catch (error) {
+      toast.error("Failed to ban selected users");
+      throw error;
+    }
+  };
+
+  const handleBulkUnban = async (userIds: string[]) => {
+    try {
+      await performBulkAction("bulk-unban", userIds);
+      const targets = getUsersByIds(userIds).map((item) => item.email).join(", ");
+      toast.success(`Unbanned ${userIds.length} user(s)`);
+      logActivity({
+        action: "Unbanned multiple users",
+        user: user.name,
+        target: targets || `${userIds.length} users`,
+        type: "unban",
+      });
+      setSelectedUserIds((prev) => prev.filter((id) => !userIds.includes(id)));
+      revalidator.revalidate();
+    } catch (error) {
+      toast.error("Failed to unban selected users");
+      throw error;
+    }
+  };
+
+  const handleBulkRoleChange = async (userIds: string[], role: string) => {
+    try {
+      await performBulkAction("bulk-role", userIds, { role });
+      const targets = getUsersByIds(userIds).map((item) => item.email).join(", ");
+      toast.success(`Updated role for ${userIds.length} user(s)`);
+      logActivity({
+        action: `Updated role to ${role}`,
+        user: user.name,
+        target: targets || `${userIds.length} users`,
+        type: "edit",
+      });
+      setSelectedUserIds((prev) => prev.filter((id) => !userIds.includes(id)));
+      revalidator.revalidate();
+    } catch (error) {
+      toast.error("Failed to update roles");
+      throw error;
+    }
+  };
+
+  const handleBulkDelete = async (userIds: string[]) => {
+    try {
+      await performBulkAction("bulk-delete", userIds);
+      const targets = getUsersByIds(userIds).map((item) => item.email).join(", ");
+      toast.success(`Deleted ${userIds.length} user(s)`);
+      logActivity({
+        action: "Deleted multiple users",
+        user: user.name,
+        target: targets || `${userIds.length} users`,
+        type: "delete",
+      });
+      setSelectedUserIds((prev) => prev.filter((id) => !userIds.includes(id)));
+      revalidator.revalidate();
+    } catch (error) {
+      toast.error("Failed to delete selected users");
+      throw error;
+    }
+  };
+
+  const handleBulkEmail = (userIds: string[]) => {
+    const targets = getUsersByIds(userIds);
+    if (targets.length === 0) {
+      toast.info("No users selected for email");
+      return;
+    }
+
+    const emails = targets.map((item) => item.email).join(",");
+    window.location.href = `mailto:${emails}`;
+    toast.success("Opened email composer for selected users");
+  };
+
+  const handleRowSelectChange = (targetUser: User, isSelected: boolean) => {
+    setSelectedUserIds((prev) => {
+      if (isSelected) {
+        if (prev.includes(targetUser.id)) {
+          return prev;
+        }
+        return [...prev, targetUser.id];
+      }
+      return prev.filter((id) => id !== targetUser.id);
+    });
+  };
+
+  const handleSelectAllChange = (select: boolean) => {
+    if (select) {
+      setSelectedUserIds((prev) => {
+        const existing = new Set(prev);
+        paginatedUsers.forEach((item) => existing.add(item.id));
+        return Array.from(existing);
+      });
+      return;
+    }
+
+    setSelectedUserIds((prev) =>
+      prev.filter((id) => !paginatedUsers.some((item) => item.id === id))
+    );
+  };
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalResults / itemsPerPage) || 1);
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [totalResults, itemsPerPage, currentPage]);
+
+  useEffect(() => {
+    setSelectedUserIds((prev) => {
+      const allowedIds = new Set(filteredUsers.map((item) => item.id));
+      const next = prev.filter((id) => allowedIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [filteredUsers]);
 
   const handleCreateSuccess = (email: string, name: string) => {
     toast.success("User created successfully");
@@ -296,7 +603,7 @@ export default function DashboardUsers() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header Section */}
-      <div className="mb-4 flex items-center justify-between flex-shrink-0">
+      <div className="mb-4 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -306,6 +613,22 @@ export default function DashboardUsers() {
         <Button onClick={handleCreateUser} size="default" disabled={!isAdmin}>
           Create User
         </Button>
+      </div>
+
+      <div className="mb-6 space-y-4 shrink-0">
+        <UserSearch onSearch={handleSearch} onExport={handleExport} totalResults={totalResults} />
+        {isAdmin && selectedUsers.length > 0 && (
+          <div className="flex justify-end">
+            <BulkActions
+              selectedUsers={selectedUsers}
+              onBulkBan={handleBulkBan}
+              onBulkUnban={handleBulkUnban}
+              onBulkRoleChange={handleBulkRoleChange}
+              onBulkDelete={handleBulkDelete}
+              onBulkEmail={handleBulkEmail}
+            />
+          </div>
+        )}
       </div>
 
       {/* User Table - Scrollable */}
@@ -318,15 +641,19 @@ export default function DashboardUsers() {
           onUnban={handleUnban}
           isLoading={false}
           isAdmin={isAdmin}
+          selectable={isAdmin}
+          selectedUserIds={selectedUserIds}
+          onSelectChange={handleRowSelectChange}
+          onSelectAllChange={handleSelectAllChange}
         />
       </div>
 
       {/* Pagination */}
-      {users.length > itemsPerPage && (
-        <div className="mt-4 flex items-center justify-between border-t pt-4 flex-shrink-0">
+      {totalResults > itemsPerPage && (
+        <div className="mt-4 flex items-center justify-between border-t pt-4 shrink-0">
           <div className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, users.length)} of {users.length} users
+            {Math.min(currentPage * itemsPerPage, totalResults)} of {totalResults} users
           </div>
           <div className="flex items-center gap-2">
             <Button

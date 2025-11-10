@@ -68,7 +68,7 @@ Open http://localhost:5173
 2. Type in the search box to find users by name/email
 3. Click "Filters" button to show advanced options
 4. Select:
-   - **Role**: Admin, Moderator, Support, User
+   - **Role**: Admin, User
    - **Status**: Active, Pending, Banned
    - **Date Range**: Created between specific dates
 5. Click "Search"
@@ -81,7 +81,7 @@ Open http://localhost:5173
 4. Choose an action:
    - **Ban Selected**: Ban multiple users at once
    - **Unban Selected**: Unban multiple users
-   - **Make Admin/Moderator/User**: Change roles in bulk
+   - **Make Admin/User**: Change roles in bulk
    - **Send Email**: Send notification to selected users
    - **Delete Selected**: Permanently remove users
 5. Confirm the action

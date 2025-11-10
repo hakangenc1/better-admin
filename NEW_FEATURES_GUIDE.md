@@ -111,7 +111,7 @@ Navigate to http://localhost:5173 and login
 #### Features:
 - **Quick Search**: Type in the search box to find users by name or email
 - **Advanced Filters**: Click "Filters" button to show:
-  - **Role Filter**: Admin, Moderator, Support, User
+  - **Role Filter**: Admin, User
   - **Status Filter**: Active, Pending Verification, Banned
   - **Date Range**: Find users created between specific dates
 - **Export**: Click "Export CSV" to download filtered results
@@ -138,7 +138,6 @@ Navigate to http://localhost:5173 and login
    - **Ban Selected**: Ban multiple users at once
    - **Unban Selected**: Unban multiple users
    - **Make Admin**: Change role to Admin
-   - **Make Moderator**: Change role to Moderator
    - **Make User**: Change role to User
    - **Send Email**: Send notification to selected users
    - **Delete Selected**: Permanently remove users
@@ -159,13 +158,11 @@ Your system now supports 4 roles:
 | Role | Description | Permissions |
 |------|-------------|-------------|
 | **Admin** | Full system access | Everything |
-| **Moderator** | Content & user moderation | User management, content moderation |
-| **Support** | User assistance | View users, limited admin access |
 | **User** | Standard user | Basic access |
 
 #### How to Change Roles:
 - **Single User**: Edit user → Change role dropdown
-- **Bulk**: Select users → Bulk Actions → Make Admin/Moderator/User
+- **Bulk**: Select users → Bulk Actions → Make Admin/User
 
 ---
 

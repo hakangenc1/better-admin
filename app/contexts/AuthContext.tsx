@@ -20,14 +20,35 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Default context value to prevent errors during SSR/hydration
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  isLoading: true,
+  isAdmin: false,
+  login: async () => {
+    throw new Error("AuthProvider not initialized");
+  },
+  logout: async () => {
+    throw new Error("AuthProvider not initialized");
+  },
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Fetch session on mount
+  // Mark as mounted on client side to prevent SSR/hydration issues
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Fetch session on mount (only on client)
+  useEffect(() => {
+    if (!isMounted) return;
+
     const fetchSession = async () => {
       try {
         const { data: session } = await authClient.getSession();
@@ -45,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchSession();
-  }, []);
+  }, [isMounted]);
 
   const isAdmin = user?.role === "admin";
 
@@ -105,8 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  // Context is always defined now (has default value), but we can still check if it's the default
+  // This prevents errors during SSR/hydration when components might render before AuthProvider is ready
   return context;
 }

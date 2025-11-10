@@ -88,7 +88,7 @@ multiSessionClient()
 
 **Features**:
 - Real-time search by name or email
-- Filter by role (Admin, Moderator, Support, User)
+- Filter by role (Admin, User)
 - Filter by status (Active, Pending, Banned)
 - Date range filtering (created between dates)
 - Export filtered results to CSV
@@ -112,7 +112,7 @@ multiSessionClient()
 **Features**:
 - Select multiple users with checkboxes
 - Bulk ban/unban users
-- Bulk role changes (Admin, Moderator, User)
+- Bulk role changes (Admin, User)
 - Bulk delete users
 - Send bulk emails
 - Confirmation dialogs for safety
@@ -121,7 +121,7 @@ multiSessionClient()
 **Operations**:
 - Ban Selected
 - Unban Selected
-- Make Admin/Moderator/User
+- Make Admin/User
 - Send Email
 - Delete Selected
 
@@ -165,14 +165,12 @@ multiSessionClient()
 
 **New Roles**:
 - **Admin**: Full system access
-- **Moderator**: User management, content moderation
-- **Support**: User assistance, limited admin access
 - **User**: Standard user access
 
 **Implementation**:
 ```typescript
 export interface User {
-  role: "user" | "admin" | "moderator" | "support";
+  role: "user" | "admin";
   // ... other fields
 }
 ```
@@ -252,7 +250,6 @@ Better Auth automatically creates/updates these tables:
 
 ### Updated Fields:
 - `user.twoFactorEnabled` - Boolean flag
-- `user.role` - Extended to include moderator/support
 - `user.image` - Profile picture URL
 
 ---

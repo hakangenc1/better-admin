@@ -35,7 +35,7 @@ const createUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["user", "admin", "moderator", "support"]),
+  role: z.enum(["user", "admin"]),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -208,8 +208,6 @@ export function UserCreateDialog({
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
-                      <SelectItem value="support">Support</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
