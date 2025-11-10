@@ -1,5 +1,6 @@
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { Checkbox } from "../ui/checkbox";
 
 interface PostgreSQLFieldsProps {
   values: {
@@ -126,21 +127,22 @@ export function PostgreSQLFields({ values, onChange, errors = {} }: PostgreSQLFi
       </div>
 
       {/* SSL Toggle */}
-      <div className="flex items-center space-x-2">
-        <input
+      <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
+        <Checkbox
           id="ssl"
-          type="checkbox"
           checked={values.ssl || false}
-          onChange={(e) => onChange("ssl", e.target.checked)}
-          className="w-4 h-4 text-primary border-input rounded focus:ring-primary"
+          onCheckedChange={(checked) => onChange("ssl", checked as boolean)}
+          className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
         />
-        <Label htmlFor="ssl" className="cursor-pointer">
-          Enable SSL/TLS connection
-        </Label>
-      </div>
-      <p className="text-xs text-muted-foreground ml-6">
-        Recommended for production environments
-      </p>
+        <div className="grid gap-1.5 font-normal">
+          <p className="text-sm leading-none font-medium">
+            Enable SSL/TLS connection
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Recommended for production environments
+          </p>
+        </div>
+      </Label>
     </div>
   );
 }

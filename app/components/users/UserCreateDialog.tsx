@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,7 +35,7 @@ const createUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["user", "admin"]),
+  role: z.enum(["user", "admin", "moderator", "support"]),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -53,6 +53,16 @@ export function UserCreateDialog({
 }: UserCreateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus email input when dialog opens
+  useEffect(() => {
+    if (open && emailInputRef.current) {
+      setTimeout(() => {
+        emailInputRef.current?.focus();
+      }, 0);
+    }
+  }, [open]);
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -130,6 +140,10 @@ export function UserCreateDialog({
                       placeholder="user@example.com"
                       disabled={isSubmitting}
                       {...field}
+                      ref={(e) => {
+                        field.ref(e);
+                        emailInputRef.current = e;
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -194,6 +208,8 @@ export function UserCreateDialog({
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="moderator">Moderator</SelectItem>
+                      <SelectItem value="support">Support</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

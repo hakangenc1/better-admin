@@ -9,6 +9,12 @@ export const authClient = createAuthClient({
     adminClient(),
     twoFactorClient({
       twoFactorPage: "/two-factor",
+      onTwoFactorRedirect() {
+        // Manually redirect to the 2FA page
+        if (typeof window !== "undefined") {
+          window.location.href = "/two-factor";
+        }
+      },
     }),
     multiSessionClient(),
   ],

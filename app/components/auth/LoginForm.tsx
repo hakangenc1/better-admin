@@ -45,9 +45,9 @@ export function LoginForm() {
 
     try {
       await login(data.email, data.password);
-      // Keep loading state active during redirect
+      // If we reach here without error, login was successful
+      // Navigate to dashboard (or user will be redirected to 2FA page automatically)
       navigate("/dashboard");
-      // Don't set isLoading to false - let the redirect happen with loading state active
     } catch (err) {
       // Only disable loading on error
       setIsLoading(false);

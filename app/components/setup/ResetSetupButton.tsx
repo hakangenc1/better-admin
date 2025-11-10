@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -20,6 +20,16 @@ export function ResetSetupButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when dialog opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }
+  }, [isOpen]);
 
   const handleReset = async () => {
     if (confirmText !== "DELETE") {
@@ -27,33 +37,36 @@ export function ResetSetupButton() {
     }
 
     setIsResetting(true);
-    
+
     try {
       const response = await fetch("/api/setup/reset", {
         method: "POST",
       });
 
       if (response.ok) {
-        // Show success message before redirect
+        // Close dialog and redirect immediately
+        setIsOpen(false);
+        
+        // Show success toast
         toast.success("Reset successful! Redirecting to setup wizard...", {
           description: "Please restart your development server for changes to take effect.",
-          duration: 3000,
+          duration: 2000,
         });
-        
-        // Wait a moment for the toast to show, then redirect
-        setTimeout(() => {
-          window.location.href = "/setup";
-        }, 1500);
+
+        // Redirect immediately to prevent auth errors
+        window.location.href = "/setup";
       } else {
         const data = await response.json().catch(() => ({}));
         toast.error("Failed to reset setup", {
           description: data.error || "Please try the command line script: npm run reset-setup",
         });
+        setIsOpen(false);
       }
     } catch (error) {
       toast.error("Failed to reset setup", {
         description: "Network error. Please try the command line script: npm run reset-setup",
       });
+      setIsOpen(false);
     } finally {
       setIsResetting(false);
       setConfirmText("");
@@ -64,6 +77,13 @@ export function ResetSetupButton() {
     setIsOpen(open);
     if (!open) {
       setConfirmText("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && isConfirmValid && !isResetting) {
+      e.preventDefault();
+      handleReset();
     }
   };
 
@@ -93,7 +113,7 @@ export function ResetSetupButton() {
                 <li>• All database data</li>
               </ul>
             </div>
-            
+
             <div className="bg-orange-500/10 border border-orange-500/20 rounded-md p-3">
               <p className="font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
@@ -109,9 +129,11 @@ export function ResetSetupButton() {
                 Type <code className="bg-muted px-1.5 py-0.5 rounded text-destructive font-semibold">DELETE</code> to confirm:
               </Label>
               <Input
+                ref={inputRef}
                 id="confirm-text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Type DELETE to confirm"
                 className="font-mono"
                 autoComplete="off"
@@ -127,6 +149,7 @@ export function ResetSetupButton() {
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
+            type="submit"
             onClick={handleReset}
             disabled={!isConfirmValid || isResetting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -66,6 +66,21 @@ export function BulkActions({
   };
 
   const userIds = selectedUsers.map((u) => u.id);
+
+  // Handle Enter key to confirm action
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && showConfirm && !isLoading) {
+        e.preventDefault();
+        handleConfirm();
+      }
+    };
+
+    if (showConfirm) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showConfirm, isLoading]);
 
   return (
     <>

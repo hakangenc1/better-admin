@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +61,21 @@ export function UserDeleteDialog({
       onOpenChange(newOpen);
     }
   };
+
+  // Handle Enter key to confirm deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && open && !isDeleting) {
+        e.preventDefault();
+        handleDelete();
+      }
+    };
+
+    if (open) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [open, isDeleting]);
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>

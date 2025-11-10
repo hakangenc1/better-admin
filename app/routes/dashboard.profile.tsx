@@ -30,6 +30,7 @@ import { User, Shield, Smartphone, History, AlertCircle, Settings } from "lucide
 import { authClient } from "~/lib/auth.client";
 import type { User as UserType } from "~/types";
 import { ResetSetupButton } from "~/components/setup/ResetSetupButton";
+import QRCode from "qrcode";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -73,6 +74,8 @@ export default function ProfilePage() {
     onSubmit: () => {},
   });
   const [passwordInput, setPasswordInput] = useState("");
+  const [verificationDialog, setVerificationDialog] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   // Check 2FA status on mount
   useEffect(() => {
@@ -175,12 +178,19 @@ export default function ProfilePage() {
           });
 
           if (result.data) {
-            setQrCode(result.data.totpURI);
+            // Generate QR code from the TOTP URI
+            const qrCodeDataUrl = await QRCode.toDataURL(result.data.totpURI, {
+              width: 256,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            setQrCode(qrCodeDataUrl);
             setBackupCodes(result.data.backupCodes || []);
-            setTwoFactorEnabled(true);
-            // Store in localStorage for persistence
-            localStorage.setItem(`2fa_enabled_${user.id}`, 'true');
-            setMessage({ type: "success", text: "2FA enabled! Scan the QR code with your authenticator app." });
+            // Don't set twoFactorEnabled yet - wait for verification
+            setMessage({ type: "success", text: "2FA setup started! Scan the QR code and enter the verification code." });
           }
         } catch (error) {
           setMessage({ type: "error", text: error instanceof Error ? error.message : "Failed to enable 2FA" });
@@ -429,15 +439,37 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>Two-Factor Authentication</CardTitle>
               <CardDescription>
-                Add an extra layer of security to your account
+                Add an extra layer of security to your account with time-based one-time passwords (TOTP)
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="space-y-6">
+              {/* Instructions */}
+              <Alert>
+                <Smartphone className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-semibold mb-2">How to use Two-Factor Authentication:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Download an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.)</li>
+                    <li>Click "Enable 2FA" and enter your password</li>
+                    <li>Scan the QR code with your authenticator app</li>
+                    <li>Save the backup codes in a secure location</li>
+                    <li>Enter the 6-digit code from your app when logging in</li>
+                  </ol>
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    <strong>Important:</strong> The QR code is shown only once. If you refresh the page, you'll need to disable and re-enable 2FA to get a new code.
+                  </p>
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <p className="font-medium">Status</p>
+                  <p className="font-medium">Two-Factor Authentication Status</p>
                   <p className="text-sm text-muted-foreground">
-                    {twoFactorEnabled ? "Enabled" : "Disabled"}
+                    {twoFactorEnabled ? (
+                      <span className="text-green-600 dark:text-green-400">✓ Enabled - Your account is protected</span>
+                    ) : (
+                      <span className="text-orange-600 dark:text-orange-400">⚠ Disabled - Enable for better security</span>
+                    )}
                   </p>
                 </div>
                 <Button
@@ -450,23 +482,141 @@ export default function ProfilePage() {
               </div>
 
               {qrCode && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-medium mb-2">Scan this QR code with your authenticator app:</p>
-                    <img src={qrCode} alt="2FA QR Code" className="border rounded-lg" />
-                  </div>
+                <div className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Left Column - QR Code */}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-sm">1</span>
+                          Scan QR Code
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Open your authenticator app and scan this code
+                        </p>
+                        <div className="bg-white p-4 rounded-lg inline-block shadow-md">
+                          <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Can't scan? Manually enter the secret in your app.
+                        </p>
+                      </div>
 
-                  {backupCodes.length > 0 && (
-                    <div>
-                      <p className="font-medium mb-2">Backup Codes (save these securely):</p>
-                      <div className="grid grid-cols-2 gap-2 p-4 bg-muted rounded-lg">
-                        {backupCodes.map((code, i) => (
-                          <code key={i} className="text-sm">{code}</code>
-                        ))}
+                      {/* Verification */}
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-sm">3</span>
+                          Verify Setup
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Enter the 6-digit code from your app
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={6}
+                            placeholder="000000"
+                            value={verificationCode}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "");
+                              setVerificationCode(value);
+                            }}
+                            className="text-center text-xl tracking-widest font-mono"
+                            disabled={isLoading}
+                          />
+                          <Button
+                            onClick={async () => {
+                              if (verificationCode.length !== 6) {
+                                setMessage({ type: "error", text: "Please enter a 6-digit code" });
+                                return;
+                              }
+                              setIsLoading(true);
+                              try {
+                                const result = await authClient.twoFactor.verifyTotp({
+                                  code: verificationCode,
+                                });
+                                if (result.error) {
+                                  throw new Error(result.error.message || "Invalid code");
+                                }
+                                setTwoFactorEnabled(true);
+                                localStorage.setItem(`2fa_enabled_${user.id}`, 'true');
+                                setMessage({ type: "success", text: "2FA enabled successfully! You'll need to enter a code when logging in." });
+                                setVerificationCode("");
+                                setQrCode(null);
+                                setBackupCodes([]);
+                              } catch (error) {
+                                setMessage({ type: "error", text: error instanceof Error ? error.message : "Invalid verification code" });
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }}
+                            disabled={isLoading || verificationCode.length !== 6}
+                          >
+                            {isLoading ? "Verifying..." : "Complete"}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Right Column - Backup Codes */}
+                    {backupCodes.length > 0 && (
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-sm">2</span>
+                            Save Backup Codes
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Store these codes securely. Each can only be used once.
+                          </p>
+                          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 max-h-64 overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-2">
+                              {backupCodes.map((code, i) => (
+                                <code key={i} className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                  {code}
+                                </code>
+                              ))}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 w-full"
+                            onClick={() => {
+                              const text = backupCodes.join('\n');
+                              navigator.clipboard.writeText(text);
+                              setMessage({ type: "success", text: "Backup codes copied to clipboard!" });
+                            }}
+                          >
+                            Copy All Codes
+                          </Button>
+                        </div>
+
+                        <Alert variant="destructive" className="text-sm">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong>Warning:</strong> Save these codes now! They won't be shown again.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
+
+              {twoFactorEnabled && !qrCode && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-semibold mb-1">2FA is currently enabled for your account</p>
+                    <p className="text-sm">
+                      You'll need to enter a code from your authenticator app when logging in. 
+                      If you've lost access to your authenticator app, use one of your backup codes or contact an administrator.
+                    </p>
+                  </AlertDescription>
+                </Alert>
               )}
             </CardContent>
           </Card>

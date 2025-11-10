@@ -50,35 +50,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = user?.role === "admin";
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const result = await authClient.signIn.email({
-        email,
-        password,
-      });
+    const result = await authClient.signIn.email({
+      email,
+      password,
+      callbackURL: "/dashboard",
+    });
 
-      if (result.error) {
-        throw new Error(result.error.message || "Login failed");
-      }
+    if (result.error) {
+      throw new Error(result.error.message || "Login failed");
+    }
 
-      // Fetch updated session after login
-      const { data: session } = await authClient.getSession();
-      if (session?.user) {
-        const userData = session.user as User;
-        
-        // Check if user is banned
-        if (userData.banned) {
-          // Sign out the banned user
-          await authClient.signOut();
-          throw new Error("Your account has been banned. Please contact support for assistance.");
-        }
-        
-        setUser(userData);
+    // If 2FA is required, the onTwoFactorRedirect callback will handle the redirect
+    // and this code won't execute further
+    
+    // If we reach here, no 2FA is required - fetch session
+    const { data: session } = await authClient.getSession();
+    if (session?.user) {
+      const userData = session.user as User;
+      
+      // Check if user is banned
+      if (userData.banned) {
+        // Sign out the banned user
+        await authClient.signOut();
+        throw new Error("Your account has been banned. Please contact support for assistance.");
       }
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
+      
+      setUser(userData);
     }
   };
 
