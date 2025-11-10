@@ -13,7 +13,6 @@ export default defineConfig({
       "react-dom",
       "react-dom/client",
       "react-router",
-      "react-router-dom",
       "@radix-ui/react-select",
       "@radix-ui/react-dialog",
       "@radix-ui/react-dropdown-menu",
