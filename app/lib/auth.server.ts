@@ -101,7 +101,7 @@ async function initializeAuth(): Promise<ReturnType<typeof betterAuth>> {
         }),
         twoFactor({
           // Two-factor authentication plugin
-          issuer: "User Management System",
+          issuer: "Better-Admin"
         }),
         multiSession({
           // Multi-session management plugin

@@ -21,7 +21,7 @@ import { authClient } from "~/lib/auth.client";
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "Session Management - User Management System" },
+    { title: "Session Management - Better-Admin" },
     { name: "description", content: "Manage user sessions across the platform" },
   ];
 }

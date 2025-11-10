@@ -7,7 +7,7 @@ import { BarChart, Bar, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Dashboard - User Management System" },
+    { title: "Dashboard - Better-Admin" },
     { name: "description", content: "Overview of user management system" },
   ];
 }

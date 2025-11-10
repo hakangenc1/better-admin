@@ -469,7 +469,7 @@ interface ApiError {
 
 ```
 VITE_API_URL=<backend-api-url>
-VITE_APP_NAME=User Management System
+VITE_APP_NAME=Better-Admin
 ```
 
 ### Hosting Options

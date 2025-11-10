@@ -34,7 +34,7 @@ import QRCode from "qrcode";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "My Profile - User Management System" },
+    { title: "My Profile - Better-Admin" },
     { name: "description", content: "Manage your profile and security settings" },
   ];
 }

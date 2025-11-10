@@ -55,7 +55,7 @@ export function SetupWizard({ initialStep = 1 }: SetupWizardProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Welcome to User Management System
+            Welcome to Better-Admin
           </h1>
           <p className="text-muted-foreground">
             Let's get your application set up in just a few steps

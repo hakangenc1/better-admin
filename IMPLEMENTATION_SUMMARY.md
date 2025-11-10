@@ -1,4 +1,4 @@
-# 🎉 User Management System - Feature Implementation Complete!
+# 🎉 Better-Admin - Feature Implementation Complete!
 
 ## ✅ Implemented Features
 
@@ -15,7 +15,7 @@
 ```typescript
 // Server: app/lib/auth.server.ts
 twoFactor({
-  issuer: "User Management System",
+  issuer: "Better-Admin",
 })
 
 // Client: app/lib/auth.client.ts
@@ -217,7 +217,7 @@ admin({
 #### 2. Two-Factor Plugin
 ```typescript
 twoFactor({
-  issuer: "User Management System",
+  issuer: "Better-Admin",
 })
 ```
 

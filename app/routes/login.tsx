@@ -10,7 +10,7 @@ import { CheckCircle2 } from "lucide-react";
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "Login - User Management System" },
+    { title: "Login - Better-Admin" },
     { name: "description", content: "Login to access the user management dashboard" },
   ];
 }
@@ -82,7 +82,7 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8 p-8">
         <div>
           <h2 className="text-center text-3xl font-bold text-foreground">
-            User Management System
+            Better-Admin
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Sign in to access the dashboard

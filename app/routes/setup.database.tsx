@@ -20,7 +20,7 @@ import { join } from "path";
 
 export function meta() {
   return [
-    { title: "Database Setup - User Management System" },
+    { title: "Database Setup - Better-Admin" },
     { name: "description", content: "Configure your database connection" },
   ];
 }

@@ -113,7 +113,7 @@ plugins: [
     },
   }),
   twoFactor({
-    issuer: "User Management System",
+    issuer: "Better-Admin",
   }),
   multiSession({
     maximumSessions: 5,

@@ -9,7 +9,7 @@ import { cn } from "~/lib/utils";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Dashboard - User Management System" },
+    { title: "Dashboard - Better-Admin" },
     { name: "description", content: "User management dashboard" },
   ];
 }
@@ -72,7 +72,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             {/* Logo and Title */}
             <div className="flex items-center space-x-8">
               <Link to="/dashboard" className="text-xl font-bold text-foreground">
-                User Management System
+                Better-Admin
               </Link>
               
               {/* Navigation Links */}

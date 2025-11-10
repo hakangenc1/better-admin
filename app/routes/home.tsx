@@ -5,8 +5,8 @@ import { auth } from "~/lib/auth.server";
 
 export function meta() {
   return [
-    { title: "User Management System" },
-    { name: "description", content: "Welcome to User Management System" },
+    { title: "Better-Admin" },
+    { name: "description", content: "Welcome to Better-Admin" },
   ];
 }
 

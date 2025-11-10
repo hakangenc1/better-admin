@@ -11,7 +11,7 @@ import { authClient } from "~/lib/auth.client";
 
 export function meta() {
   return [
-    { title: "Two-Factor Authentication - User Management System" },
+    { title: "Two-Factor Authentication - Better-Admin" },
     { name: "description", content: "Enter your 2FA code" },
   ];
 }
