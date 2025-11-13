@@ -18,5 +18,7 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@ubs-better-admin": "https://raw.githubusercontent.com/hakangenc1/better-admin/master/public/r/{name}.json"
+  }
 }
